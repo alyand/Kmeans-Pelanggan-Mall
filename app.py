@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
+import io
 
 st.set_page_config(page_title="Klasterisasi Pelanggan Mall", layout="centered")
 
@@ -24,6 +25,24 @@ if uploaded_file is not None:
         data = df[['Usia (17 - 50)', 'Pengeluaran Bulanan']]
         scaler = StandardScaler()
         scaled_data = scaler.fit_transform(data)
+
+        # Metode Elbow
+        st.subheader("📉 Tentukan K Optimal (Metode Elbow)")
+        if st.checkbox("Tampilkan Grafik Elbow"):
+            inertia = []
+            k_range = range(1, 11)
+            for k in k_range:
+                kmeans = KMeans(n_clusters=k, random_state=42)
+                kmeans.fit(scaled_data)
+                inertia.append(kmeans.inertia_)
+
+            fig_elbow, ax_elbow = plt.subplots()
+            ax_elbow.plot(k_range, inertia, marker='o')
+            ax_elbow.set_title("Metode Elbow")
+            ax_elbow.set_xlabel("Jumlah Klaster (K)")
+            ax_elbow.set_ylabel("Inertia")
+            ax_elbow.grid(True)
+            st.pyplot(fig_elbow)
 
         # Pilih jumlah klaster
         st.subheader("🔢 Pilih Jumlah Klaster")
@@ -55,7 +74,10 @@ if uploaded_file is not None:
         # Unduh hasil
         @st.cache_data
         def convert_df_to_excel(df):
-            return df.to_excel(index=False, engine='openpyxl')
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False)
+            return buffer.getvalue()
 
         st.download_button(
             label="⬇️ Download Hasil Klasterisasi",
@@ -63,7 +85,8 @@ if uploaded_file is not None:
             file_name='hasil_klasterisasi.xlsx',
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
+
     else:
-        st.error("File tidak mengandung kolom 'Usia (17 - 50)' dan 'Pengeluaran Bulanan'")
+        st.error("❌ File tidak mengandung kolom 'Usia (17 - 50)' dan 'Pengeluaran Bulanan'")
 else:
-    st.info("Silakan unggah file Excel berisi data pelanggan.")
+    st.info("ℹ️ Silakan unggah file Excel berisi data pelanggan.")
